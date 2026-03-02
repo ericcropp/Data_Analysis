@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools >= 68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "General_Data_Analysis"
+version = "0.1.0"
+description = "Beam-physics data analysis"
+readme = "README.md"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+General_Data_Analysis = ["config/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers --disable-warnings"
+markers = [
+    "unit: fast, pure logic or fakes",
+    "contract: checks that the code meets its specifications",
+    "integration: tests that combine multiple components",
+    "dask: tests that use a Dask LocalCluster or distributed Client",
+    "slow: long or real simulation runs",
+    "regression: reproduces previously fixed bugs",
+    "smoke: quick end-to-end health checks",
+    "smoke_mocked: smoke tests using mocked simulations",
+    "smoke_full: smoke tests using real simulations",
+]

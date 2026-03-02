@@ -1,0 +1,90 @@
+# ---------------------------------------------------------------------------
+# example_datasets.yaml
+#
+# Copy this file, rename it (e.g. my_datasets.yaml), fill in your real
+# paths, and pass the directory to Data_Pipeline:
+#
+#   from General_Data_Analysis import Data_Pipeline
+#   Data_Pipeline("My_Dataset", config_dir="/path/to/my/config/")
+#
+# Required fields per dataset: pathlist, screen, save_loc
+# Optional fields (omit or set to null): prefixes, DAQ_Matching, bg_file,
+#   raw_vcc
+# ---------------------------------------------------------------------------
+
+# Base paths for processed / saved output data (selected at runtime by
+# hostname).  Add or rename sites as needed.
+paths:
+  NERSC: "/path/to/your/NERSC/processed_data/"
+  s3df:  "/path/to/your/s3df/processed_data/"
+
+# PV keys that are present in every dataset row (values default to "").
+# This list must match the empty_keys in the default config unless you
+# override it here.
+empty_keys:
+  - "CAMR:LT10:900:Image:ArrayData"
+  - "CAMR:LT10:900:XRMS"
+  - "CAMR:LT10:900:YRMS"
+  - "CAMR:LT10:900:Image:ArraySize1_RBV"
+  - "CAMR:LT10:900:Image:ArraySize0_RBV"
+  - "CAMR:LT10:900:X"
+  - "CAMR:LT10:900:Y"
+  - "CAMR:LT10:900:RESOLUTION"
+  - "PROF:IN10:241:Image:ArrayData"
+  - "PROF:IN10:241:XRMS"
+  - "PROF:IN10:241:YRMS"
+  - "PROF:IN10:241:Image:ArraySize1_RBV"
+  - "PROF:IN10:241:Image:ArraySize0_RBV"
+  - "PROF:IN10:241:X"
+  - "PROF:IN10:241:Y"
+  - "PROF:IN10:241:RESOLUTION"
+  - "PROF:IN10:571:Image:ArrayData"
+  - "PROF:IN10:571:XRMS"
+  - "PROF:IN10:571:YRMS"
+  - "PROF:IN10:571:Image:ArraySize1_RBV"
+  - "PROF:IN10:571:Image:ArraySize0_RBV"
+  - "PROF:IN10:571:X"
+  - "PROF:IN10:571:Y"
+  - "PROF:IN10:571:RESOLUTION"
+  - "PROF:IN10:711:Image:ArrayData"
+  - "PROF:IN10:711:XRMS"
+  - "PROF:IN10:711:YRMS"
+  - "PROF:IN10:711:Image:ArraySize1_RBV"
+  - "PROF:IN10:711:Image:ArraySize0_RBV"
+  - "PROF:IN10:711:X"
+  - "PROF:IN10:711:Y"
+  - "PROF:IN10:711:RESOLUTION"
+
+datasets:
+
+  # Minimal dataset – background image embedded in the data files.
+  My_Dataset_571:
+    pathlist:
+      - "/path/to/raw/data/directory/"
+    screen: "PROF:IN10:571:Image:ArrayData"
+    save_loc: "YYYY-MM-DD/"
+    raw_vcc: "included"
+
+  # Dataset with an external background file and separate VCC images.
+  My_Dataset_241:
+    pathlist:
+      - "/path/to/raw/data/directory/"
+      - "/path/to/additional/data/"
+    screen: "PROF:IN10:241:Image:ArrayData"
+    save_loc: "YYYY-MM-DD/"
+    bg_file: "/path/to/backgrounds/*background*.npy"
+    raw_vcc: "/path/to/vcc/images/vcc*.npy"
+
+  # Dataset with DAQ scan matching and prefix filtering.
+  My_Dataset_571_with_DAQ:
+    pathlist:
+      - "/path/to/raw/data/directory/"
+    screen: "PROF:IN10:571:Image:ArrayData"
+    save_loc: "YYYY-MM-DD/"
+    prefixes:
+      - "SCAN_PREFIX_"
+    DAQ_Matching: "/path/to/DAQ/DAQ.yaml"
+    bg_file: "/path/to/backgrounds/*background*571*.npy"
+
+aliases:
+  my_571: My_Dataset_571

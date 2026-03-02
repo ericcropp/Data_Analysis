@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# example_analysis_parameters.yaml
+#
+# Copy this file, rename it (e.g. my_analysis_parameters.yaml), fill in
+# values for each dataset, and pass the directory to Data_Pipeline:
+#
+#   from General_Data_Analysis import Data_Pipeline
+#   Data_Pipeline("My_Dataset_571", config_dir="/path/to/my/config/")
+#
+# Use the Manual_Analysis_Tools notebooks to determine these values
+# interactively.  The notebooks in Manual_Analysis_Tools/ are the intended
+# workflow for finding good crop regions and thresholds.
+#
+# All datasets referenced in your datasets.yaml must have a matching entry
+# here.
+# ---------------------------------------------------------------------------
+
+My_Dataset_571:
+  # List of crop regions for the beam image (xstart/xend/ystart/yend in px).
+  # Determine interactively via notebook 4_Generic_Image_Processing.
+  bound_list:
+    - {xstart: 200, xend: 700, ystart: 200, yend: 700}
+  # Which background image index to use (-1 = last, 0 = first).
+  idx: -1
+  # Intensity threshold to reject clipped/saturated beams.
+  thresh: 1.0e6
+  # Border-mean threshold for image-level filtering.
+  bg_thresh: 5
+  # Projection-mean threshold for beam filtering.
+  proj_thresh: 4.0e3
+  # Secondary intensity threshold used during background selection /
+  # image processing stage.
+  thresh_1: 1.0e6
+  # Crop region(s) for the VCC image.
+  VCC_bound_list:
+    - {xstart: 250, xend: 1050, ystart: 100, yend: 900}
+  # Which VCC image to use (ignored when raw_vcc == "included").
+  VCC_idx: 0
+
+My_Dataset_241:
+  bound_list:
+    - {xstart: 150, xend: 650, ystart: 150, yend: 650}
+  idx: -1
+  thresh: 1.0e6
+  bg_thresh: 10
+  proj_thresh: 4.0e3
+  thresh_1: 1.0e6
+  VCC_bound_list:
+    - {xstart: 250, xend: 1050, ystart: 100, yend: 900}
+  VCC_idx: 0
