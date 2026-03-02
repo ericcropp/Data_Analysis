@@ -57,6 +57,12 @@ def _load_datasets(yaml_path=None):
     with open(yaml_path, "r") as fh:
         cfg = yaml.safe_load(fh)
 
+    # Empty or missing config (e.g. gitignored configs) → return an
+    # empty dict so the package can still be imported.  Fixtures / callers
+    # are responsible for populating `datasets` at runtime.
+    if not cfg:
+        return {}
+
     paths = cfg["paths"]
     computer = _detect_computer()
     empty = {k: "" for k in cfg["empty_keys"]}

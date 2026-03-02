@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 import os
+import sys
+import yaml
 
 from General_Data_Analysis.Data_Pipeline import Data_Pipeline
 from General_Data_Analysis.Data_Classes import Data_Set, datasets
@@ -147,8 +149,29 @@ def smoke_env(tmp_path, monkeypatch):
         raw_vcc=str(vcc_dir) + '/vcc*.npy',
     )
 
+    # -- fake config dir so Data_Pipeline can load analysis_parameters -------
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    fake_params = {
+        'test_571_smoke': {
+            'bound_list': [{'xstart': 100, 'xend': 600, 'ystart': 100, 'yend': 600}],
+            'idx': 0,
+            'thresh': 0,
+            'bg_thresh': 6,
+            'proj_thresh': 4e5,
+            'VCC_bound_list': [{'xstart': 250, 'xend': 1050, 'ystart': 100, 'yend': 900}],
+            'VCC_idx': 0,
+            'thresh_1': 1e6,
+        }
+    }
+    with open(str(config_dir / 'analysis_parameters.yaml'), 'w') as fh:
+        yaml.dump(fake_params, fh)
+
     # patch the module-level dict so Data_Pipeline finds our dataset
     monkeypatch.setitem(datasets, 'test_571_smoke', dataset)
+    # patch config dir so Data_Pipeline loads our fake analysis_parameters.yaml
+    _dp_module = sys.modules['General_Data_Analysis.Data_Pipeline']
+    monkeypatch.setattr(_dp_module, '_default_config_dir', lambda: str(config_dir))
     return dataset
 
 
