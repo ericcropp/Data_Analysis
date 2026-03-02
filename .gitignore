@@ -9,4 +9,4 @@ Old/
 .pytest_cache*
 .vscode*
 *egg-info*
-/src/General_Data_Analysis/config/*
+src/General_Data_Analysis/config/*
