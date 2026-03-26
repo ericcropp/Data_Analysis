@@ -8,4 +8,5 @@ Old/
 *pycache*
 .pytest_cache*
 .vscode*
-*egg-info*
+datasets.yaml
+analysis_parameters.yaml
