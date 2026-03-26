@@ -1,4 +1,4 @@
-__all__ = ["Data_Set", "datasets"]
+__all__ = ["Data_Set", "load_datasets"]
 
 import os
 import socket
@@ -36,30 +36,19 @@ def _detect_computer():
     return 's3df' if 'sdf' in socket.gethostname() else 'NERSC'
 
 
-def _default_config_dir():
-    """Return the path to the package's built-in ``config/`` directory."""
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
-
-
-def _load_datasets(yaml_path=None):
-    """Read *datasets.yaml* and return a ``dict[str, Data_Set]``.
+def load_datasets(yaml_path):
+    """Read a *datasets.yaml* file and return a ``dict[str, Data_Set]``.
 
     Parameters
     ----------
-    yaml_path : str | None
-        Override path to the YAML file.  Pass a custom path to use your own
-        datasets config.  Defaults to ``config/datasets.yaml`` inside the
-        package (``src/General_Data_Analysis/config/datasets.yaml``).
+    yaml_path : str
+        Path to the datasets YAML file.  Copy
+        ``config/example_datasets.yaml`` as a starting point.
     """
-    if yaml_path is None:
-        yaml_path = os.path.join(_default_config_dir(), "datasets.yaml")
-
     with open(yaml_path, "r") as fh:
         cfg = yaml.safe_load(fh)
 
-    # Empty or missing config (e.g. gitignored configs) → return an
-    # empty dict so the package can still be imported.  Fixtures / callers
-    # are responsible for populating `datasets` at runtime.
+    # Empty config → return an empty dict.
     if not cfg:
         return {}
 
@@ -87,8 +76,3 @@ def _load_datasets(yaml_path=None):
         result[alias] = result[target]
 
     return result
-
-
-# ── module-level datasets dict (built once at import time) ─────────────────
-
-datasets = _load_datasets()

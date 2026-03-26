@@ -122,3 +122,105 @@ def test_zscore_and_outlier_detect():
     assert len(zs) == 4
     print(zs)
     outliers = outlier_detect(zs, thresh=1.5)
+
+
+# ---------------------------------------------------------------------------
+# Tests for load_datasets
+# ---------------------------------------------------------------------------
+
+import yaml as _yaml
+from General_Data_Analysis.Data_Classes import load_datasets, Data_Set
+
+@pytest.mark.unit
+def test_load_datasets_valid(tmp_path):
+    """load_datasets returns a populated dict for a well-formed YAML."""
+    datasets_yaml = tmp_path / "datasets.yaml"
+    cfg = {
+        'paths': {'NERSC': '/nersc/', 's3df': '/s3df/'},
+        'empty_keys': ['KEY_A', 'KEY_B'],
+        'datasets': {
+            'My_Dataset': {
+                'pathlist': ['/data/'],
+                'screen': 'PROF:IN10:571:Image:ArrayData',
+                'save_loc': 'output/',
+            }
+        },
+    }
+    with open(str(datasets_yaml), 'w') as fh:
+        _yaml.dump(cfg, fh)
+
+    result = load_datasets(str(datasets_yaml))
+    assert 'My_Dataset' in result
+    assert isinstance(result['My_Dataset'], Data_Set)
+
+@pytest.mark.unit
+def test_load_datasets_empty_yaml(tmp_path):
+    """load_datasets returns an empty dict for an empty YAML file."""
+    datasets_yaml = tmp_path / "datasets.yaml"
+    datasets_yaml.write_text("")
+    result = load_datasets(str(datasets_yaml))
+    assert result == {}
+
+@pytest.mark.unit
+def test_load_datasets_aliases(tmp_path):
+    """load_datasets resolves aliases to the same Data_Set object."""
+    datasets_yaml = tmp_path / "datasets.yaml"
+    cfg = {
+        'paths': {'NERSC': '/nersc/', 's3df': '/s3df/'},
+        'empty_keys': ['KEY_A'],
+        'datasets': {
+            'My_Dataset': {
+                'pathlist': ['/data/'],
+                'screen': 'PROF:IN10:571:Image:ArrayData',
+                'save_loc': 'output/',
+            }
+        },
+        'aliases': {'my_alias': 'My_Dataset'},
+    }
+    with open(str(datasets_yaml), 'w') as fh:
+        _yaml.dump(cfg, fh)
+
+    result = load_datasets(str(datasets_yaml))
+    assert result['my_alias'] is result['My_Dataset']
+
+@pytest.mark.unit
+def test_load_datasets_missing_file():
+    """load_datasets raises FileNotFoundError for a nonexistent path."""
+    with pytest.raises(FileNotFoundError):
+        load_datasets("/nonexistent/path/datasets.yaml")
+
+@pytest.mark.unit
+def test_Data_Pipeline_missing_datasets_yaml(tmp_path):
+    """Data_Pipeline raises FileNotFoundError for a nonexistent datasets YAML."""
+    from General_Data_Analysis import Data_Pipeline
+    params_yaml = tmp_path / "params.yaml"
+    params_yaml.write_text("")
+    with pytest.raises(FileNotFoundError):
+        Data_Pipeline("Any_Dataset",
+                      datasets_yaml="/nonexistent/datasets.yaml",
+                      analysis_parameters_yaml=str(params_yaml))
+
+@pytest.mark.unit
+def test_Data_Pipeline_missing_analysis_yaml(tmp_path):
+    """Data_Pipeline raises FileNotFoundError for a nonexistent analysis YAML."""
+    import yaml as _yaml
+    from General_Data_Analysis import Data_Pipeline
+    # Provide a valid (minimal) datasets.yaml so load_datasets succeeds
+    datasets_yaml = tmp_path / "datasets.yaml"
+    cfg = {
+        'paths': {'NERSC': '/nersc/', 's3df': '/s3df/'},
+        'empty_keys': ['KEY_A'],
+        'datasets': {
+            'My_Dataset': {
+                'pathlist': ['/data/'],
+                'screen': 'PROF:IN10:571:Image:ArrayData',
+                'save_loc': 'output/',
+            }
+        },
+    }
+    with open(str(datasets_yaml), 'w') as fh:
+        _yaml.dump(cfg, fh)
+    with pytest.raises((FileNotFoundError, ValueError)):
+        Data_Pipeline("My_Dataset",
+                      datasets_yaml=str(datasets_yaml),
+                      analysis_parameters_yaml="/nonexistent/params.yaml")

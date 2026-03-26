@@ -38,10 +38,7 @@ General_Data_Analysis/
 │   ├── Data_Pipeline.py                    # Top-level pipeline entry points
 │   ├── Data_Pipeline_Functions.py          # Pipeline step implementations
 │   ├── DAQ_Extract.py                      # MATLAB DAQ file extraction
-│   ├── Image_Analysis.py                   # Gaussian fitting, RMS, cropping
-│   └── config/                             # Default built-in configuration
-│       ├── datasets.yaml                   # Dataset definitions (see above example --> copy here)
-│       └── analysis_parameters.yaml        # Per-dataset analysis parameters (see above example --> copy here)
+│   └── Image_Analysis.py                   # Gaussian fitting, RMS, cropping
 └── tests/
     ├── smoke/
     │   └── test_smoke.py                   # End-to-end with synthetic data
@@ -89,7 +86,9 @@ numpy · pandas · scipy · matplotlib · h5py · opencv-python · Pillow · ima
 ```python
 from General_Data_Analysis import Data_Pipeline
 
-Data_Pipeline("January_2025_571")
+Data_Pipeline("January_2025_571",
+              datasets_yaml="datasets.yaml",
+              analysis_parameters_yaml="analysis_parameters.yaml")
 ```
 
 Or batch-run several datasets:
@@ -98,7 +97,9 @@ Or batch-run several datasets:
 from General_Data_Analysis import Data_Pipeline
 
 for name in ["January_2025_241", "January_2025_571"]:
-    Data_Pipeline(name)
+    Data_Pipeline(name,
+                  datasets_yaml="datasets.yaml",
+                  analysis_parameters_yaml="analysis_parameters.yaml")
 ```
 
 See `Examples/Runner.py` for a ready-made script.
@@ -127,16 +128,16 @@ thresholds, background selection, etc.) that are then recorded in
 
 ## Configuration
 
-All configuration lives in two YAML files in `src/General_Data_Analysis/config/`
-(the package default).  No Python edits are needed to add a new dataset or tune
-analysis parameters.
-
-To use **your own config files**, create a directory containing
-`datasets.yaml` and `analysis_parameters.yaml` (copy from `config/example_*.yaml`
-as a starting point), then pass it to the pipeline:
+Configuration is provided via two YAML files: one for dataset definitions and
+one for analysis parameters.  No Python edits are needed to add a new dataset
+or tune analysis parameters.  Copy `config/example_datasets.yaml` and
+`config/example_analysis_parameters.yaml` as starting points, then pass the
+file paths to the pipeline:
 
 ```python
-Data_Pipeline("My_Dataset_571", config_dir="/path/to/my/config/")
+Data_Pipeline("My_Dataset_571",
+              datasets_yaml="/path/to/datasets.yaml",
+              analysis_parameters_yaml="/path/to/analysis_parameters.yaml")
 ```
 
 ### `datasets.yaml` — dataset definitions
@@ -184,7 +185,9 @@ Then add matching analysis parameters (see below).
 If using a custom config directory, pass it when running the pipeline:
 
 ```python
-Data_Pipeline("My_New_Dataset", config_dir="/path/to/my/config/")
+Data_Pipeline("My_New_Dataset",
+              datasets_yaml="/path/to/datasets.yaml",
+              analysis_parameters_yaml="/path/to/analysis_parameters.yaml")
 ```
 
 ### `analysis_parameters.yaml` — per-dataset analysis tuning
@@ -212,11 +215,14 @@ Everything is importable from the top-level namespace:
 ```python
 import General_Data_Analysis as gda
 
-# Pipeline with custom config directory
-gda.Data_Pipeline("My_Dataset_571", config_dir="/path/to/my/config/")
+# Run the pipeline with explicit YAML paths
+gda.Data_Pipeline("My_Dataset_571",
+                  datasets_yaml="/path/to/datasets.yaml",
+                  analysis_parameters_yaml="/path/to/analysis_parameters.yaml")
 
-# Access a dataset object
-ds = gda.datasets["January_2025_571"]
+# Load datasets from a YAML file
+datasets = gda.load_datasets("/path/to/datasets.yaml")
+ds = datasets["January_2025_571"]
 pathlist, screen, save_loc, empty, prefixes, DAQ_Matching, bg_file, raw_vcc = ds.return_params()
 
 ```
@@ -226,7 +232,7 @@ pathlist, screen, save_loc, empty, prefixes, DAQ_Matching, bg_file, raw_vcc = ds
 | Module | Exports |
 |--------|---------|
 | `Data_Pipeline` | `Data_Pipeline`, `Data_Pipeline_Trunc` |
-| `Data_Classes` | `Data_Set`, `datasets` |
+| `Data_Classes` | `Data_Set`, `load_datasets` |
 | `Data_Pipeline_Functions` | `AnalysisParameters`, `validate_dataset`, `Generic_Preprocessing`, `Generic_DAQ_Preprocessing`, `Generic_Data_Processing`, `Generic_Image_Processing`, `Background_Treatment`, `filter_beams`, `Generic_Moment_Calculation`, `Generic_VCC_Analysis`, plus utilities |
 | `DAQ_Extract` | `DAQ_1D_Extraction_v2`, `loadmat` |
 | `Image_Analysis` | `GaussianParams`, `Gaussian_Fit_4_Dim`, `RMS_Calc`, `RMS_Image_Analysis`, `image_cropp_center`, `ellipse_crop_v3`, `bg_thresh`, `imrotate45`, and more |

@@ -10,3 +10,4 @@ Old/
 .vscode*
 datasets.yaml
 analysis_parameters.yaml
+*.egg-info*

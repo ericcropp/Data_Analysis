@@ -1,5 +1,5 @@
 from .Data_Pipeline import Data_Pipeline, Data_Pipeline_Trunc
-from .Data_Classes import Data_Set, datasets
+from .Data_Classes import Data_Set, load_datasets
 from .DAQ_Extract import DAQ_1D_Extraction_v2, loadmat
 from .Image_Analysis import (
     GaussianParams,
@@ -52,7 +52,7 @@ __all__ = [
     "Data_Pipeline_Trunc",
     # Dataset management
     "Data_Set",
-    "datasets",
+    "load_datasets",
     # DAQ extraction
     "DAQ_1D_Extraction_v2",
     "loadmat",

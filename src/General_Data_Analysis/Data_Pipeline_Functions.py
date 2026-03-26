@@ -1,4 +1,3 @@
-from .Data_Classes import datasets
 import numpy as np
 import matplotlib.pyplot as plt
 import json
@@ -39,7 +38,7 @@ class AnalysisParameters:
         self.VCC_idx = params.get('VCC_idx')
         self.thresh_1 = float(params.get('thresh_1',1e6))
 
-def validate_dataset(dataset_name):
+def validate_dataset(dataset_name, datasets):
     if dataset_name not in datasets:
         raise ValueError(f"Dataset '{dataset_name}' is not recognized. Available datasets are: {list(datasets.keys())}")
     print(f"Dataset '{dataset_name}' is valid.")

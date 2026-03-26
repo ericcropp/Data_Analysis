@@ -5,7 +5,9 @@
 # values for each dataset, and pass the directory to Data_Pipeline:
 #
 #   from General_Data_Analysis import Data_Pipeline
-#   Data_Pipeline("My_Dataset_571", config_dir="/path/to/my/config/")
+#   Data_Pipeline("My_Dataset_571",
+#                datasets_yaml="/path/to/datasets.yaml",
+#                analysis_parameters_yaml="/path/to/analysis_parameters.yaml")
 #
 # Use the Manual_Analysis_Tools notebooks to determine these values
 # interactively.  The notebooks in Manual_Analysis_Tools/ are the intended

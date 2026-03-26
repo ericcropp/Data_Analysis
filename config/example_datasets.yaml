@@ -5,7 +5,9 @@
 # paths, and pass the directory to Data_Pipeline:
 #
 #   from General_Data_Analysis import Data_Pipeline
-#   Data_Pipeline("My_Dataset", config_dir="/path/to/my/config/")
+#   Data_Pipeline("My_Dataset",
+#                datasets_yaml="/path/to/datasets.yaml",
+#                analysis_parameters_yaml="/path/to/analysis_parameters.yaml")
 #
 # Required fields per dataset: pathlist, screen, save_loc
 # Optional fields (omit or set to null): prefixes, DAQ_Matching, bg_file,
