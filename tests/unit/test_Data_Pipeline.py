@@ -1,3 +1,4 @@
+import yaml
 import numpy as np
 import pytest
 import os
@@ -224,3 +225,287 @@ def test_Data_Pipeline_missing_analysis_yaml(tmp_path):
         Data_Pipeline("My_Dataset",
                       datasets_yaml=str(datasets_yaml),
                       analysis_parameters_yaml="/nonexistent/params.yaml")
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by archive tests
+# ---------------------------------------------------------------------------
+
+def _minimal_datasets_cfg(base_output, dataset_name='DS', save_loc='run/'):
+    return {
+        'paths': {
+            'NERSC': str(base_output) + '/',
+            's3df': str(base_output) + '/',
+        },
+        'empty_keys': ['KEY_A'],
+        'datasets': {
+            dataset_name: {
+                'pathlist': ['/data/'],
+                'screen': 'PROF:IN10:571:Image:ArrayData',
+                'save_loc': save_loc,
+            }
+        },
+        'aliases': {},
+    }
+
+
+def _minimal_params_cfg(dataset_name='DS'):
+    return {
+        dataset_name: {
+            'bound_list': [], 'idx': 0, 'thresh': 1,
+            'bg_thresh': 1, 'proj_thresh': 1,
+            'VCC_bound_list': [], 'VCC_idx': 0, 'thresh_1': 1.0,
+        }
+    }
+
+
+# ---------------------------------------------------------------------------
+# _check_archive_exists
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_check_archive_exists_false_when_no_files(tmp_path):
+    """Returns False when no archived files exist."""
+    from General_Data_Analysis.Data_Pipeline import _check_archive_exists
+    assert not _check_archive_exists(str(tmp_path), 'DS')
+
+
+@pytest.mark.unit
+def test_check_archive_exists_true_after_datasets_archive(tmp_path):
+    """Returns True after the datasets entry is archived."""
+    from General_Data_Analysis.Data_Pipeline import _check_archive_exists, _archive_config
+    cfg = _minimal_datasets_cfg(tmp_path)
+    _archive_config(cfg, _minimal_params_cfg(), 'DS')
+    assert _check_archive_exists(str(tmp_path) + '/', 'DS', check_params=False)
+
+
+@pytest.mark.unit
+def test_check_archive_exists_true_after_params_archive(tmp_path):
+    """Returns True (via params check) after analysis_parameters is archived."""
+    from General_Data_Analysis.Data_Pipeline import _check_archive_exists, _archive_config
+    cfg = _minimal_datasets_cfg(tmp_path)
+    _archive_config(cfg, _minimal_params_cfg(), 'DS')
+    assert _check_archive_exists(str(tmp_path) + '/', 'DS', check_params=True)
+
+
+@pytest.mark.unit
+def test_check_archive_exists_false_for_different_name(tmp_path):
+    """Returns False for a dataset not yet archived."""
+    from General_Data_Analysis.Data_Pipeline import _check_archive_exists, _archive_config
+    cfg = _minimal_datasets_cfg(tmp_path)
+    _archive_config(cfg, _minimal_params_cfg(), 'DS')
+    assert not _check_archive_exists(str(tmp_path) + '/', 'OTHER_DS')
+
+
+# ---------------------------------------------------------------------------
+# _archive_config
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_archive_creates_files_from_scratch(tmp_path):
+    """First call creates both archived YAML files."""
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    base = tmp_path / 'base'
+    base.mkdir()
+    cfg = _minimal_datasets_cfg(base)
+    params = _minimal_params_cfg()
+
+    _archive_config(cfg, params, 'DS')
+
+    ds_out = yaml.safe_load(open(str(base / 'datasets.yaml')))
+    p_out = yaml.safe_load(open(str(base / 'analysis_parameters.yaml')))
+    assert 'DS' in ds_out['datasets']
+    assert 'DS' in p_out
+    assert 'paths' in ds_out
+    assert 'empty_keys' in ds_out
+
+
+@pytest.mark.unit
+def test_archive_merges_second_dataset(tmp_path):
+    """Running a second dataset appends its entry without removing the first."""
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    base = tmp_path / 'base'
+    base.mkdir()
+
+    cfg_a = _minimal_datasets_cfg(base, 'DS_A')
+    cfg_b = _minimal_datasets_cfg(base, 'DS_B')
+    # Give each its own raw_datasets_cfg with only that dataset
+    _archive_config(cfg_a, _minimal_params_cfg('DS_A'), 'DS_A')
+    _archive_config(cfg_b, _minimal_params_cfg('DS_B'), 'DS_B')
+
+    ds_out = yaml.safe_load(open(str(base / 'datasets.yaml')))
+    p_out = yaml.safe_load(open(str(base / 'analysis_parameters.yaml')))
+    assert 'DS_A' in ds_out['datasets']
+    assert 'DS_B' in ds_out['datasets']
+    assert 'DS_A' in p_out
+    assert 'DS_B' in p_out
+
+
+@pytest.mark.unit
+def test_archive_overwrites_existing_entry(tmp_path):
+    """Re-archiving the same dataset name replaces its entry."""
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    base = tmp_path / 'base'
+    base.mkdir()
+
+    cfg_v1 = _minimal_datasets_cfg(base)
+    cfg_v1['datasets']['DS']['pathlist'] = ['/v1/']
+    _archive_config(cfg_v1, _minimal_params_cfg(), 'DS')
+
+    cfg_v2 = _minimal_datasets_cfg(base)
+    cfg_v2['datasets']['DS']['pathlist'] = ['/v2/']
+    params_v2 = _minimal_params_cfg()
+    params_v2['DS']['thresh'] = 999
+    _archive_config(cfg_v2, params_v2, 'DS')
+
+    ds_out = yaml.safe_load(open(str(base / 'datasets.yaml')))
+    p_out = yaml.safe_load(open(str(base / 'analysis_parameters.yaml')))
+    assert ds_out['datasets']['DS']['pathlist'] == ['/v2/']
+    assert p_out['DS']['thresh'] == 999
+
+
+@pytest.mark.unit
+def test_archive_includes_aliases(tmp_path):
+    """Aliases that point to the archived dataset are included."""
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    base = tmp_path / 'base'
+    base.mkdir()
+
+    cfg = _minimal_datasets_cfg(base)
+    cfg['aliases'] = {'my_alias': 'DS', 'unrelated_alias': 'OTHER'}
+    _archive_config(cfg, _minimal_params_cfg(), 'DS')
+
+    ds_out = yaml.safe_load(open(str(base / 'datasets.yaml')))
+    assert 'my_alias' in ds_out['aliases']
+    assert ds_out['aliases']['my_alias'] == 'DS'
+    # alias for a dataset we didn't archive should not be present
+    assert 'unrelated_alias' not in ds_out.get('aliases', {})
+
+
+@pytest.mark.unit
+def test_archive_idempotent(tmp_path):
+    """Archiving the same dataset twice produces the same output as once."""
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    base = tmp_path / 'base'
+    base.mkdir()
+
+    cfg = _minimal_datasets_cfg(base)
+    params = _minimal_params_cfg()
+
+    _archive_config(cfg, params, 'DS')
+    content_after_first = open(str(base / 'datasets.yaml')).read()
+
+    _archive_config(cfg, params, 'DS')
+    content_after_second = open(str(base / 'datasets.yaml')).read()
+
+    assert content_after_first == content_after_second
+
+
+@pytest.mark.unit
+def test_archive_datasets_only_when_params_none(tmp_path):
+    """Passing None for analysis_params_raw skips analysis_parameters.yaml."""
+    import os
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    base = tmp_path / 'base'
+    base.mkdir()
+
+    cfg = _minimal_datasets_cfg(base)
+    _archive_config(cfg, None, 'DS')
+
+    assert os.path.exists(str(base / 'datasets.yaml'))
+    assert not os.path.exists(str(base / 'analysis_parameters.yaml'))
+
+
+# ---------------------------------------------------------------------------
+# Overwrite check in Data_Pipeline (using _confirm)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_pipeline_aborts_on_decline(tmp_path):
+    """Data_Pipeline returns early without running if user declines overwrite.
+
+    The abort happens before load_datasets / any pipeline steps, so only file
+    I/O for reading the YAML configs occurs.  We verify the archive is untouched.
+    """
+    import os
+    from General_Data_Analysis.Data_Pipeline import _archive_config
+    from General_Data_Analysis import Data_Pipeline
+
+    base = tmp_path / 'base'
+    base.mkdir()
+    cfg_dir = tmp_path / 'cfg'
+    cfg_dir.mkdir()
+
+    raw_cfg = _minimal_datasets_cfg(base)
+    params_raw = _minimal_params_cfg()
+
+    datasets_yaml_path = cfg_dir / 'datasets.yaml'
+    params_yaml_path = cfg_dir / 'params.yaml'
+    with open(str(datasets_yaml_path), 'w') as fh:
+        yaml.dump(raw_cfg, fh)
+    with open(str(params_yaml_path), 'w') as fh:
+        yaml.dump(params_raw, fh)
+
+    # Pre-populate the archive so the overwrite check triggers
+    _archive_config(raw_cfg, params_raw, 'DS')
+    mtime_before = os.path.getmtime(str(base / 'datasets.yaml'))
+
+    # Decline the overwrite — pipeline should return without running
+    Data_Pipeline('DS',
+                  datasets_yaml=str(datasets_yaml_path),
+                  analysis_parameters_yaml=str(params_yaml_path),
+                  _confirm=lambda msg: False)
+
+    assert os.path.getmtime(str(base / 'datasets.yaml')) == mtime_before, \
+        "Archive file must not be modified when user declines"
+
+
+@pytest.mark.unit
+def test_pipeline_no_prompt_when_no_archive(tmp_path, monkeypatch):
+    """_confirm is never called on first run (no existing archive)."""
+    import sys
+    import General_Data_Analysis.Data_Pipeline_Functions  # ensure loaded
+    import General_Data_Analysis.Data_Pipeline            # ensure loaded
+    dpf_module = sys.modules['General_Data_Analysis.Data_Pipeline_Functions']
+    dp_module   = sys.modules['General_Data_Analysis.Data_Pipeline']
+
+    base = tmp_path / 'base'
+    base.mkdir()
+    cfg_dir = tmp_path / 'cfg'
+    cfg_dir.mkdir()
+
+    raw_cfg = _minimal_datasets_cfg(base)
+    params_raw = _minimal_params_cfg()
+
+    datasets_yaml_path = cfg_dir / 'datasets.yaml'
+    params_yaml_path = cfg_dir / 'params.yaml'
+    with open(str(datasets_yaml_path), 'w') as fh:
+        yaml.dump(raw_cfg, fh)
+    with open(str(params_yaml_path), 'w') as fh:
+        yaml.dump(params_raw, fh)
+
+    # _confirm should never be invoked — raise if it is
+    def _should_not_be_called(msg):
+        raise AssertionError(f"_confirm was called unexpectedly: {msg}")
+
+    # Mock pipeline steps so they don't need real data files
+    fake_dataset = object()
+    monkeypatch.setattr(dpf_module, 'validate_dataset',
+                        lambda name, ds: fake_dataset)
+    fake_params = _minimal_params_cfg()['DS']
+    fake_params['thresh'] = float(fake_params['thresh'])
+    fake_params['bg_thresh'] = float(fake_params['bg_thresh'])
+    fake_params['proj_thresh'] = float(fake_params['proj_thresh'])
+    fake_params['thresh_1'] = float(fake_params['thresh_1'])
+    monkeypatch.setattr(dpf_module, 'AnalysisParameters',
+                        lambda p: type('P', (), fake_params)())
+    for step in ('Generic_Preprocessing', 'Generic_DAQ_Preprocessing',
+                 'Generic_Data_Processing', 'Generic_Image_Processing',
+                 'Background_Treatment', 'filter_beams',
+                 'Generic_Moment_Calculation', 'Generic_VCC_Analysis'):
+        monkeypatch.setattr(dpf_module, step, lambda *a, **k: None)
+
+    dp_module.Data_Pipeline('DS',
+                             datasets_yaml=str(datasets_yaml_path),
+                             analysis_parameters_yaml=str(params_yaml_path),
+                             _confirm=_should_not_be_called)

@@ -208,6 +208,29 @@ fully-commented template:
 | `VCC_bound_list` | Crop regions for VCC analysis |
 | `VCC_idx` | Which VCC image to use (irrelevant if `raw_vcc == "included"`, as shot-by-shot VCC images will be included) |
 
+### Config archiving
+
+After each successful pipeline run, the relevant sections of `datasets.yaml` and
+`analysis_parameters.yaml` are automatically appended to matching files in the
+**base output directory** (the `paths.NERSC` or `paths.s3df` value from your
+`datasets.yaml`, selected by hostname).
+
+This creates a self-contained record of exactly what configuration produced the
+output data.  If every dataset in a run is processed, the archived files will be
+equivalent in content to the input files (up to key ordering).
+
+#### Overwrite protection
+
+If a dataset's config is already archived, the pipeline will prompt before
+overwriting:
+
+```
+Dataset 'My_Dataset' already has archived config in '/path/to/output/'. Overwrite? [y/N]:
+```
+
+Answer `y` to re-run and update the archived config.  Press Enter (or anything
+other than `y`) to abort without running any processing.
+
 ## Package API
 
 Everything is importable from the top-level namespace:
